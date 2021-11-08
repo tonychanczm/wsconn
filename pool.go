@@ -3,6 +3,7 @@ package wsconn
 import (
 	"bytes"
 	"io"
+	"log"
 	"net"
 	"sync"
 	"time"
@@ -38,30 +39,30 @@ type wsconn struct {
 
 func (w *wsconn) readConn() {
 	for {
-		w.mu.RLock()
 		w.rmu.Lock()
 
 		t, b, err := w.conn.ReadMessage()
 		if err != nil {
 			w.errCh <- err
 			w.rmu.Unlock()
-			w.mu.RUnlock()
 			return
 		}
 
 		switch t {
 		case websocket.BinaryMessage, websocket.TextMessage:
 			w.buf.Write(b)
+			select {
+			case w.come <- true:
+			default:
+			}
 		case websocket.CloseMessage:
 			w.rmu.Unlock()
-			w.mu.RUnlock()
 			_ = w.Close()
 			return
 		case websocket.PingMessage, websocket.PongMessage:
 		}
 
 		w.rmu.Unlock()
-		w.mu.RUnlock()
 	}
 }
 
@@ -103,6 +104,19 @@ func (w *wsconn) Write(b []byte) (n int, err error) {
 }
 
 func (w *wsconn) Close() error {
+	log.Println("Getting Lock")
+	w.mu.Lock()
+	log.Println("Got it!")
+	defer w.mu.Unlock()
+	err := w.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	if err != nil {
+		return err
+	}
+	close(w.done)
+	return w.conn.Close()
+}
+
+func (w *wsconn) ForceClose() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	close(w.done)
