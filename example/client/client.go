@@ -13,6 +13,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	conn := wsconn.NewWSConn(c)
 	_, err = conn.Write([]byte("111a7s8dasudhiasduhasdjnasdsdj111111"))
 	if err != nil {

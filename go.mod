@@ -1,4 +1,4 @@
-module wsconn
+module github.com/tonychanczm/wsconn
 
 go 1.16
 
