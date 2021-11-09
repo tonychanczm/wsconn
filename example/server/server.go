@@ -17,12 +17,22 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	conn := wsconn.NewWSConn(c)
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			log.Println(err)
+		}
+		err = conn.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 	buf := make([]byte, 10)
 	for err == nil {
 		_, err = conn.Read(buf)
 		log.Println(buf)
 	}
-	log.Println(err)
+	log.Println("quit:", err)
 }
 
 func main() {
