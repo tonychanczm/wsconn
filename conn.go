@@ -3,7 +3,6 @@ package wsconn
 import (
 	"bytes"
 	"io"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -49,14 +48,9 @@ func (w *connectAdapter) close() {
 }
 
 func (w *connectAdapter) readConn() {
-	log.Println("connReaderWorker in")
-	defer log.Println("connReaderWorker out")
 	for {
-		w.rmu.Lock()
-
 		b, err := w.fh.ReadFrame()
 		if err != nil {
-			w.rmu.Unlock()
 			if err == io.EOF {
 				w.close()
 				return
@@ -65,13 +59,14 @@ func (w *connectAdapter) readConn() {
 			return
 		}
 
+		w.rmu.Lock()
 		w.buf.Write(b)
+		w.rmu.Unlock()
 		select {
 		case w.come <- true:
 		default:
 		}
 
-		w.rmu.Unlock()
 	}
 }
 
@@ -95,7 +90,6 @@ func (w *connectAdapter) Read(b []byte) (n int, err error) {
 	}
 	defer w.mu.RUnlock()
 	defer w.rmu.Unlock()
-
 	return w.buf.Read(b)
 }
 
